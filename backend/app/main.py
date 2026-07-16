@@ -17,6 +17,7 @@ from app.services.agentic_file_server import upload_to_agentic_file_server
 from app.services.supabase_admin import (
     create_agenda_as_staff,
     create_user_as_admin,
+    delete_published_exam_as_staff,
     delete_profile_as_admin,
     get_current_user_from_token,
     list_agenda_for_user,
@@ -245,6 +246,15 @@ def publish_generated_exam(
 
     access_token = authorization.replace("Bearer ", "", 1).strip()
     return publish_exam_as_staff(access_token, request)
+
+
+@app.delete("/api/exams/published/{exam_id}")
+def delete_published_exam(exam_id: str, authorization: str = Header(default="")):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token.")
+
+    access_token = authorization.replace("Bearer ", "", 1).strip()
+    return delete_published_exam_as_staff(access_token, exam_id)
 
 
 @app.get("/api/exams/{exam_id}")

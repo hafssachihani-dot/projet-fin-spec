@@ -121,6 +121,15 @@ export function listPublishedExams(token) {
   });
 }
 
+export function deletePublishedExam(token, examId) {
+  return request(`/api/exams/published/${examId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+}
+
 export function getLatestWorkflowResult() {
   return request("/api/workflow/latest-result");
 }

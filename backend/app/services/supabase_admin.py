@@ -386,3 +386,23 @@ def publish_exam_as_staff(access_token: str, payload: PublishExamRequest) -> dic
     if not rows:
         raise HTTPException(status_code=500, detail="Exam was not published.")
     return rows[0]
+
+
+def delete_published_exam_as_staff(access_token: str, exam_id: str) -> dict:
+    _require_supabase_admin_config()
+
+    current_user = _get_current_user(access_token)
+    profile = _get_or_create_profile(current_user)
+    if profile.get("role") not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Only teachers and admins can delete exams.")
+
+    encoded_id = quote(exam_id)
+    _json_request(
+        f"{SUPABASE_URL}/rest/v1/published_exams?id=eq.{encoded_id}",
+        method="DELETE",
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        },
+    )
+    return {"status": "deleted", "id": exam_id}

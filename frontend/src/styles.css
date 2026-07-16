@@ -406,6 +406,19 @@ textarea.input-control {
   gap: 14px;
 }
 
+.clickable-card {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.clickable-card:hover,
+.clickable-card:focus {
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .question-head strong {
   color: #111827;
 }
@@ -477,6 +490,71 @@ textarea.input-control {
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+}
+
+.exam-manager-modal,
+.exam-take-modal {
+  max-width: 860px;
+  width: min(860px, calc(100vw - 28px));
+}
+
+.exam-manager-list,
+.student-exam-form {
+  display: grid;
+  gap: 12px;
+}
+
+.exam-manager-item,
+.student-question {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.exam-manager-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.exam-manager-item strong,
+.student-question strong {
+  color: #111827;
+}
+
+.exam-manager-item span,
+.exam-manager-item small {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+}
+
+.student-question p {
+  margin: 10px 0;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.student-choice-list {
+  display: grid;
+  gap: 8px;
+}
+
+.student-choice-list label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.student-choice-list input {
+  accent-color: #2563eb;
 }
 
 .form-grid {

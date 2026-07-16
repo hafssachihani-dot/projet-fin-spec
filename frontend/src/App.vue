@@ -7,11 +7,14 @@ import {
   FileText,
   Library,
   NotebookPen,
+  Pencil,
+  PlayCircle,
   Save,
   Sparkles,
   Trash2,
   UserPlus,
   UsersRound,
+  X,
 } from "lucide-vue-next";
 import AuthPanel from "./components/AuthPanel.vue";
 import AdminStudentManager from "./components/AdminStudentManager.vue";
@@ -24,6 +27,7 @@ import WorkflowResult from "./components/WorkflowResult.vue";
 import {
   clearLatestWorkflowResult,
   createAgenda,
+  deletePublishedExam,
   deleteProfile,
   generateExam,
   getLatestWorkflowResult,
@@ -60,6 +64,10 @@ const isSavingAgenda = ref(false);
 const adminProfiles = ref([]);
 const adminMessage = ref("");
 const isLoadingProfiles = ref(false);
+const showTeacherExamsModal = ref(false);
+const selectedStudentExam = ref(null);
+const studentAnswers = ref({});
+const studentExamMessage = ref("");
 
 const authLoading = ref(true);
 const session = ref(null);
@@ -105,6 +113,7 @@ const navigationItems = computed(() => {
 
   if (canManagePedagogy.value) {
     items.push({ key: "create-exam", label: "Creer examen", icon: Sparkles });
+    items.push({ key: "teacher-exams", label: "Mes examens", icon: BookOpenCheck });
   }
 
   items.push({ key: "agenda", label: "Agenda", icon: CalendarDays });
@@ -166,6 +175,36 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function examRecordPayload(record) {
+  return record?.exam || record || {};
+}
+
+function examRecordTitle(record) {
+  const exam = examRecordPayload(record);
+  return record?.title || exam.module || "Examen";
+}
+
+function examQuestions(record) {
+  return examRecordPayload(record).questions || [];
+}
+
+function questionText(question) {
+  return question.texte || question.enonce || question.prompt || "";
+}
+
+function questionChoices(question) {
+  const choices = question.choix || question.options || question.propositions || question.answers || [];
+  if (Array.isArray(choices) && choices.length) return choices;
+
+  // Pour Vrai/Faux, l'agent peut oublier les choix. On les affiche quand meme.
+  const type = String(question.type || "").toLowerCase();
+  if (type.includes("vrai") || type.includes("faux")) {
+    return ["Vrai", "Faux"];
+  }
+
+  return [];
 }
 
 function unwrapWorkflowPayload(value) {
@@ -295,6 +334,15 @@ async function refreshPublishedExams() {
   }
 }
 
+function handleSidebarNavigate(page) {
+  if (page === "teacher-exams") {
+    showTeacherExamsModal.value = true;
+    refreshPublishedExams();
+    return;
+  }
+  activePage.value = page;
+}
+
 async function refreshAdminProfiles() {
   if (!isAdmin.value || !session.value?.access_token) {
     adminProfiles.value = [];
@@ -421,6 +469,43 @@ async function handlePublishGeneratedExam() {
   }
 }
 
+function handleEditPublishedExam(record) {
+  draftExam.value = examRecordPayload(record);
+  publishMessage.value = "Brouillon charge depuis Mes examens. Tu peux verifier puis republier.";
+  showTeacherExamsModal.value = false;
+  activePage.value = "create-exam";
+}
+
+async function handleDeletePublishedExam(record) {
+  if (!session.value?.access_token) return;
+  const confirmed = window.confirm(`Supprimer "${examRecordTitle(record)}" ? Il disparaitra aussi chez les etudiants.`);
+  if (!confirmed) return;
+
+  try {
+    await deletePublishedExam(session.value.access_token, record.id);
+    await refreshPublishedExams();
+  } catch (error) {
+    errorMessage.value = error.message;
+  }
+}
+
+function openStudentExam(record) {
+  selectedStudentExam.value = record;
+  studentAnswers.value = {};
+  studentExamMessage.value = "";
+}
+
+function closeStudentExam() {
+  selectedStudentExam.value = null;
+  studentAnswers.value = {};
+  studentExamMessage.value = "";
+}
+
+function submitStudentExam() {
+  // POC: on garde les reponses cote interface. Le workflow de correction viendra apres.
+  studentExamMessage.value = "Reponses enregistrees localement. Prochaine etape: envoyer vers le workflow de correction.";
+}
+
 async function handleCreateAgendaItem() {
   agendaMessage.value = "";
   if (!agendaForm.title || !agendaForm.scheduled_at || !agendaForm.target_study_level) {
@@ -515,7 +600,7 @@ onMounted(async () => {
       :active-page="activePage"
       :display-name="displayName"
       :display-role="displayRole"
-      @navigate="activePage = $event"
+      @navigate="handleSidebarNavigate"
       @expand="isSidebarExpanded = $event"
     />
 
@@ -537,6 +622,97 @@ onMounted(async () => {
         :access-token="session.access_token"
         @close="handleAdminModalClose"
       />
+
+      <div v-if="showTeacherExamsModal" class="modal-backdrop" @click.self="showTeacherExamsModal = false">
+        <section class="admin-modal exam-manager-modal">
+          <div class="modal-header">
+            <div>
+              <span class="eyebrow">ENSEIGNANT</span>
+              <h2>Mes examens</h2>
+            </div>
+            <button class="icon-button" type="button" aria-label="Fermer" @click="showTeacherExamsModal = false">
+              <X :size="18" />
+            </button>
+          </div>
+
+          <div v-if="!publishedExams.length" class="empty-state">
+            Aucun examen publie pour le moment.
+          </div>
+
+          <div v-else class="exam-manager-list">
+            <article v-for="exam in publishedExams" :key="exam.id" class="exam-manager-item">
+              <div>
+                <strong>{{ examRecordTitle(exam) }}</strong>
+                <span>{{ exam.evaluation_type }} - {{ exam.target_study_level }}</span>
+                <small>{{ examQuestions(exam).length }} questions - {{ formatDateTime(exam.created_at) }}</small>
+              </div>
+              <div class="table-actions">
+                <button class="icon-button" type="button" aria-label="Modifier" @click="handleEditPublishedExam(exam)">
+                  <Pencil :size="16" />
+                </button>
+                <button class="icon-button danger" type="button" aria-label="Supprimer" @click="handleDeletePublishedExam(exam)">
+                  <Trash2 :size="16" />
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <div v-if="selectedStudentExam" class="modal-backdrop" @click.self="closeStudentExam">
+        <section class="admin-modal exam-take-modal">
+          <div class="modal-header">
+            <div>
+              <span class="eyebrow">ESPACE ETUDIANT</span>
+              <h2>{{ examRecordTitle(selectedStudentExam) }}</h2>
+            </div>
+            <button class="icon-button" type="button" aria-label="Fermer" @click="closeStudentExam">
+              <X :size="18" />
+            </button>
+          </div>
+
+          <form class="student-exam-form" @submit.prevent="submitStudentExam">
+            <article v-for="(question, index) in examQuestions(selectedStudentExam)" :key="question.numero || index" class="student-question">
+              <div class="question-head">
+                <strong>Question {{ question.numero || index + 1 }}</strong>
+                <span class="status-pill">{{ question.points || question.bareme || 0 }} pts</span>
+              </div>
+              <p>{{ questionText(question) }}</p>
+
+              <div v-if="questionChoices(question).length" class="student-choice-list">
+                <label v-for="(choice, choiceIndex) in questionChoices(question)" :key="choice">
+                  <input
+                    v-model="studentAnswers[question.numero || index]"
+                    type="radio"
+                    :name="`question-${question.numero || index}`"
+                    :value="choice"
+                  />
+                  <span class="choice-letter">{{ String.fromCharCode(65 + choiceIndex) }}</span>
+                  <span>{{ choice }}</span>
+                </label>
+              </div>
+
+              <textarea
+                v-else
+                v-model="studentAnswers[question.numero || index]"
+                class="input-control"
+                rows="3"
+                placeholder="Ecris ta reponse..."
+              />
+            </article>
+
+            <p v-if="studentExamMessage" class="helper-text">{{ studentExamMessage }}</p>
+
+            <div class="draft-actions">
+              <button class="btn btn-secondary" type="button" @click="closeStudentExam">Fermer</button>
+              <button class="btn btn-success" type="submit">
+                <Save :size="18" />
+                <span>Soumettre les reponses</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
 
       <section v-if="activePage === 'dashboard'" class="dashboard-page">
         <div class="metric-grid">
@@ -587,13 +763,24 @@ onMounted(async () => {
           Aucun examen publie pour ton niveau pour le moment.
         </div>
         <div v-else class="published-exam-list">
-          <article v-for="exam in studentPublishedExams" :key="exam.id" class="published-exam-card">
+          <article
+            v-for="exam in studentPublishedExams"
+            :key="exam.id"
+            class="published-exam-card clickable-card"
+            role="button"
+            tabindex="0"
+            @click="openStudentExam(exam)"
+            @keydown.enter="openStudentExam(exam)"
+          >
             <div>
               <strong>{{ exam.title }}</strong>
               <span>{{ exam.evaluation_type }} - {{ exam.target_study_level }}</span>
               <small>{{ formatDateTime(exam.created_at) }}</small>
             </div>
-            <span class="status-pill success">Disponible</span>
+            <span class="status-pill success">
+              <PlayCircle :size="14" />
+              Commencer
+            </span>
           </article>
         </div>
       </section>
