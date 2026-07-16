@@ -130,6 +130,17 @@ export function deletePublishedExam(token, examId) {
   });
 }
 
+export function updatePublishedExamVisibility(token, examId, status) {
+  return request(`/api/exams/published/${examId}/visibility`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ status })
+  });
+}
+
 export function getLatestWorkflowResult() {
   return request("/api/workflow/latest-result");
 }

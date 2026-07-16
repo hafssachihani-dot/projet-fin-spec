@@ -88,6 +88,10 @@ class PublishExamRequest(BaseModel):
     teacher_note: Optional[str] = ""
 
 
+class ExamVisibilityRequest(BaseModel):
+    status: Literal["published", "hidden"]
+
+
 class CreateUserRequest(BaseModel):
     full_name: str
     email: str

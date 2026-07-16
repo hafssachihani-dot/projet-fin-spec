@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.models import (
     AgendaItemRequest,
     CreateUserRequest,
+    ExamVisibilityRequest,
     ExamGenerationRequest,
     KnowledgeBase,
     PublishExamRequest,
@@ -24,6 +25,7 @@ from app.services.supabase_admin import (
     list_published_exams_for_user,
     list_profiles_as_admin,
     publish_exam_as_staff,
+    update_published_exam_visibility_as_staff,
     update_profile_as_admin,
 )
 from app.services.storage import (
@@ -255,6 +257,19 @@ def delete_published_exam(exam_id: str, authorization: str = Header(default=""))
 
     access_token = authorization.replace("Bearer ", "", 1).strip()
     return delete_published_exam_as_staff(access_token, exam_id)
+
+
+@app.patch("/api/exams/published/{exam_id}/visibility")
+def update_published_exam_visibility(
+    exam_id: str,
+    request: ExamVisibilityRequest,
+    authorization: str = Header(default=""),
+):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token.")
+
+    access_token = authorization.replace("Bearer ", "", 1).strip()
+    return update_published_exam_visibility_as_staff(access_token, exam_id, request)
 
 
 @app.get("/api/exams/{exam_id}")

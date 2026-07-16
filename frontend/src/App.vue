@@ -4,6 +4,8 @@ import {
   BarChart3,
   BookOpenCheck,
   CalendarDays,
+  Eye,
+  EyeOff,
   FileText,
   Library,
   NotebookPen,
@@ -37,6 +39,7 @@ import {
   listProfiles,
   publishGeneratedExam,
   updateProfile,
+  updatePublishedExamVisibility,
 } from "./services/api";
 import {
   getCurrentProfile,
@@ -64,7 +67,7 @@ const isSavingAgenda = ref(false);
 const adminProfiles = ref([]);
 const adminMessage = ref("");
 const isLoadingProfiles = ref(false);
-const showTeacherExamsModal = ref(false);
+const selectedTeacherExam = ref(null);
 const selectedStudentExam = ref(null);
 const studentAnswers = ref({});
 const studentExamMessage = ref("");
@@ -145,6 +148,7 @@ const pageTitle = computed(() => {
     "student-exams": "Mes examens",
     "student-notes": "Notes",
     "create-exam": "Creer examen",
+    "teacher-exams": "Mes examens",
     agenda: "Agenda",
     administration: "Administration",
     workflow: "Workflow",
@@ -335,12 +339,10 @@ async function refreshPublishedExams() {
 }
 
 function handleSidebarNavigate(page) {
-  if (page === "teacher-exams") {
-    showTeacherExamsModal.value = true;
-    refreshPublishedExams();
-    return;
-  }
   activePage.value = page;
+  if (page === "teacher-exams" || page === "student-exams") {
+    refreshPublishedExams();
+  }
 }
 
 async function refreshAdminProfiles() {
@@ -472,7 +474,7 @@ async function handlePublishGeneratedExam() {
 function handleEditPublishedExam(record) {
   draftExam.value = examRecordPayload(record);
   publishMessage.value = "Brouillon charge depuis Mes examens. Tu peux verifier puis republier.";
-  showTeacherExamsModal.value = false;
+  selectedTeacherExam.value = null;
   activePage.value = "create-exam";
 }
 
@@ -483,10 +485,32 @@ async function handleDeletePublishedExam(record) {
 
   try {
     await deletePublishedExam(session.value.access_token, record.id);
+    selectedTeacherExam.value = null;
     await refreshPublishedExams();
   } catch (error) {
     errorMessage.value = error.message;
   }
+}
+
+async function handleToggleExamVisibility(record) {
+  if (!session.value?.access_token) return;
+  const nextStatus = record.status === "published" ? "hidden" : "published";
+
+  try {
+    const updated = await updatePublishedExamVisibility(session.value.access_token, record.id, nextStatus);
+    publishedExams.value = publishedExams.value.map((item) => (item.id === updated.id ? updated : item));
+    selectedTeacherExam.value = updated;
+  } catch (error) {
+    errorMessage.value = error.message;
+  }
+}
+
+function openTeacherExam(record) {
+  selectedTeacherExam.value = record;
+}
+
+function closeTeacherExam() {
+  selectedTeacherExam.value = null;
 }
 
 function openStudentExam(record) {
@@ -623,38 +647,50 @@ onMounted(async () => {
         @close="handleAdminModalClose"
       />
 
-      <div v-if="showTeacherExamsModal" class="modal-backdrop" @click.self="showTeacherExamsModal = false">
+      <div v-if="selectedTeacherExam" class="modal-backdrop" @click.self="closeTeacherExam">
         <section class="admin-modal exam-manager-modal">
           <div class="modal-header">
             <div>
               <span class="eyebrow">ENSEIGNANT</span>
-              <h2>Mes examens</h2>
+              <h2>{{ examRecordTitle(selectedTeacherExam) }}</h2>
             </div>
-            <button class="icon-button" type="button" aria-label="Fermer" @click="showTeacherExamsModal = false">
+            <button class="icon-button" type="button" aria-label="Fermer" @click="closeTeacherExam">
               <X :size="18" />
             </button>
           </div>
 
-          <div v-if="!publishedExams.length" class="empty-state">
-            Aucun examen publie pour le moment.
+          <div class="exam-detail-summary">
+            <span class="status-pill" :class="{ success: selectedTeacherExam.status === 'published' }">
+              {{ selectedTeacherExam.status === "published" ? "Visible etudiant" : "Cache aux etudiants" }}
+            </span>
+            <span>{{ selectedTeacherExam.evaluation_type }} - {{ selectedTeacherExam.target_study_level }}</span>
+            <span>{{ examQuestions(selectedTeacherExam).length }} questions</span>
           </div>
 
-          <div v-else class="exam-manager-list">
-            <article v-for="exam in publishedExams" :key="exam.id" class="exam-manager-item">
-              <div>
-                <strong>{{ examRecordTitle(exam) }}</strong>
-                <span>{{ exam.evaluation_type }} - {{ exam.target_study_level }}</span>
-                <small>{{ examQuestions(exam).length }} questions - {{ formatDateTime(exam.created_at) }}</small>
-              </div>
-              <div class="table-actions">
-                <button class="icon-button" type="button" aria-label="Modifier" @click="handleEditPublishedExam(exam)">
-                  <Pencil :size="16" />
-                </button>
-                <button class="icon-button danger" type="button" aria-label="Supprimer" @click="handleDeletePublishedExam(exam)">
-                  <Trash2 :size="16" />
-                </button>
-              </div>
+          <div class="exam-modal-preview">
+            <article v-for="(question, index) in examQuestions(selectedTeacherExam).slice(0, 4)" :key="question.numero || index">
+              <strong>Question {{ question.numero || index + 1 }}</strong>
+              <p>{{ questionText(question) }}</p>
             </article>
+            <p v-if="examQuestions(selectedTeacherExam).length > 4" class="helper-text">
+              + {{ examQuestions(selectedTeacherExam).length - 4 }} autres questions.
+            </p>
+          </div>
+
+          <div class="draft-actions">
+            <button class="btn btn-secondary" type="button" @click="handleEditPublishedExam(selectedTeacherExam)">
+              <Pencil :size="18" />
+              <span>Modifier</span>
+            </button>
+            <button class="btn btn-secondary" type="button" @click="handleToggleExamVisibility(selectedTeacherExam)">
+              <EyeOff v-if="selectedTeacherExam.status === 'published'" :size="18" />
+              <Eye v-else :size="18" />
+              <span>{{ selectedTeacherExam.status === "published" ? "Cacher" : "Afficher" }}</span>
+            </button>
+            <button class="btn btn-danger" type="button" @click="handleDeletePublishedExam(selectedTeacherExam)">
+              <Trash2 :size="18" />
+              <span>Supprimer</span>
+            </button>
           </div>
         </section>
       </div>
@@ -750,6 +786,39 @@ onMounted(async () => {
             </ul>
             <div v-else class="empty-state">Aucun evenement agenda enregistre.</div>
           </section>
+        </div>
+      </section>
+
+      <section v-else-if="activePage === 'teacher-exams'" class="panel">
+        <div class="section-title">
+          <BookOpenCheck :size="19" />
+          <h2>Mes examens</h2>
+          <span class="status-pill">Gestion enseignant</span>
+        </div>
+
+        <div v-if="!publishedExams.length" class="empty-state">
+          Aucun examen sauvegarde pour le moment.
+        </div>
+
+        <div v-else class="published-exam-list">
+          <article
+            v-for="exam in publishedExams"
+            :key="exam.id"
+            class="published-exam-card clickable-card"
+            role="button"
+            tabindex="0"
+            @click="openTeacherExam(exam)"
+            @keydown.enter="openTeacherExam(exam)"
+          >
+            <div>
+              <strong>{{ examRecordTitle(exam) }}</strong>
+              <span>{{ exam.evaluation_type }} - {{ exam.target_study_level }}</span>
+              <small>{{ examQuestions(exam).length }} questions - {{ formatDateTime(exam.created_at) }}</small>
+            </div>
+            <span class="status-pill" :class="{ success: exam.status === 'published' }">
+              {{ exam.status === "published" ? "Visible" : "Cache" }}
+            </span>
+          </article>
         </div>
       </section>
 

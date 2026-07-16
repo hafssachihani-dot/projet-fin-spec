@@ -557,6 +557,35 @@ textarea.input-control {
   accent-color: #2563eb;
 }
 
+.exam-detail-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #64748b;
+}
+
+.exam-modal-preview {
+  display: grid;
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.exam-modal-preview article {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.exam-modal-preview p {
+  margin: 7px 0 0;
+  color: #334155;
+  line-height: 1.45;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -608,6 +637,10 @@ textarea.input-control {
 
 .btn-success {
   background: #3f8f46;
+}
+
+.btn-danger {
+  background: #dc2626;
 }
 
 .btn-light {

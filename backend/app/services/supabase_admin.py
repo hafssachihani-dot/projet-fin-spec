@@ -7,7 +7,7 @@ from urllib.request import Request, urlopen
 from fastapi import HTTPException
 
 from app.config import SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL
-from app.models import AgendaItemRequest, CreateUserRequest, ProfileUpdateRequest, PublishExamRequest
+from app.models import AgendaItemRequest, CreateUserRequest, ExamVisibilityRequest, ProfileUpdateRequest, PublishExamRequest
 
 
 def _require_supabase_admin_config() -> None:
@@ -331,8 +331,12 @@ def list_published_exams_for_user(access_token: str) -> list[dict]:
         "id,title,module,evaluation_type,target_study_level,status,exam,"
         "teacher_note,created_at,created_by"
     )
+    query = f"{SUPABASE_URL}/rest/v1/published_exams?select={select}&order=created_at.desc"
+    if profile.get("role") == "student":
+        query = f"{SUPABASE_URL}/rest/v1/published_exams?select={select}&status=eq.published&order=created_at.desc"
+
     rows = _json_request(
-        f"{SUPABASE_URL}/rest/v1/published_exams?select={select}&status=eq.published&order=created_at.desc",
+        query,
         headers={
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
@@ -406,3 +410,35 @@ def delete_published_exam_as_staff(access_token: str, exam_id: str) -> dict:
         },
     )
     return {"status": "deleted", "id": exam_id}
+
+
+def update_published_exam_visibility_as_staff(
+    access_token: str,
+    exam_id: str,
+    payload: ExamVisibilityRequest,
+) -> dict:
+    _require_supabase_admin_config()
+
+    current_user = _get_current_user(access_token)
+    profile = _get_or_create_profile(current_user)
+    if profile.get("role") not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Only teachers and admins can update exams.")
+
+    encoded_id = quote(exam_id)
+    rows = _json_request(
+        (
+            f"{SUPABASE_URL}/rest/v1/published_exams?id=eq.{encoded_id}&"
+            "select=id,title,module,evaluation_type,target_study_level,status,exam,teacher_note,created_at,created_by"
+        ),
+        method="PATCH",
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Prefer": "return=representation",
+        },
+        payload={"status": payload.status},
+    )
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Exam not found.")
+    return rows[0]
