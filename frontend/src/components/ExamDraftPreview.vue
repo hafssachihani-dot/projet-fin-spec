@@ -31,6 +31,15 @@ function questionPoints(question) {
   return question.bareme ?? question.points ?? 0;
 }
 
+function questionChoices(question) {
+  const choices = question.choix || question.options || question.propositions || question.answers || [];
+  return Array.isArray(choices) ? choices : [];
+}
+
+function correctAnswer(question) {
+  return question.bonne_reponse || question.correct_answer || question.reponse_correcte || "";
+}
+
 function examTotal(exam) {
   const explicitTotal =
     exam.bareme_total ?? exam["barème_total"] ?? exam["barÃ¨me_total"] ?? exam.total_points;
@@ -69,6 +78,15 @@ function examTotal(exam) {
           <span class="status-pill">{{ questionPoints(question) }} pts</span>
         </div>
         <p>{{ questionText(question) }}</p>
+        <ol v-if="questionChoices(question).length" class="choice-list">
+          <li v-for="(choice, choiceIndex) in questionChoices(question)" :key="`${questionId(question, index)}-${choiceIndex}`">
+            <span class="choice-letter">{{ String.fromCharCode(65 + choiceIndex) }}</span>
+            <span>{{ choice }}</span>
+          </li>
+        </ol>
+        <p v-if="correctAnswer(question)" class="correct-answer">
+          Bonne reponse : {{ correctAnswer(question) }}
+        </p>
         <small v-if="question.type">{{ question.type }}</small>
       </article>
     </div>

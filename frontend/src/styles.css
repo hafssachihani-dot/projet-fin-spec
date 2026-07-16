@@ -424,6 +424,45 @@ textarea.input-control {
   font-weight: 700;
 }
 
+.choice-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 9px 10px;
+  color: #334155;
+}
+
+.choice-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.correct-answer {
+  margin-top: 10px !important;
+  color: #166534 !important;
+  font-weight: 800;
+}
+
 .draft-actions {
   display: flex;
   justify-content: flex-end;
