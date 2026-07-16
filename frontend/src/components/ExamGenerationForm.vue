@@ -15,6 +15,7 @@ const form = reactive({
   study_level: "Licence 2",
   difficulty: "Intermediaire",
   evaluation_type: "Examen final",
+  question_type: "QCM",
   question_count: 20,
   learning_objectives:
     "Evaluer la comprehension des conditions de formation du contrat, du consentement, de la capacite juridique, de l'objet du contrat et de la resolution de cas pratiques.",
@@ -68,6 +69,17 @@ function submitForm() {
           <option>Controle continu</option>
           <option>Examen final</option>
           <option>Etude de cas</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Type de questions</span>
+        <select v-model="form.question_type" class="input-control">
+          <option>QCM</option>
+          <option>Questions ouvertes</option>
+          <option>Cas pratique</option>
+          <option>Vrai/Faux</option>
+          <option>Mixte</option>
         </select>
       </label>
 

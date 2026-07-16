@@ -35,6 +35,7 @@ class ExamGenerationRequest(BaseModel):
     study_level: str
     difficulty: str
     evaluation_type: str
+    question_type: str = "QCM"
     question_count: int = Field(ge=1, le=100)
     learning_objectives: str
     constraints: Optional[str] = ""

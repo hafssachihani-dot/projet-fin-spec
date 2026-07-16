@@ -21,6 +21,7 @@ def build_workflow_payload(
         f"Generate and quality-check an academic exam for module '{request.module}'. "
         f"Duration: {request.duration}. Study level: {request.study_level}. "
         f"Difficulty: {request.difficulty}. Evaluation type: {request.evaluation_type}. "
+        f"Question type: {request.question_type}. "
         f"Number of questions: {request.question_count}. "
         f"Learning objectives: {request.learning_objectives}. "
         f"Constraints: {request.constraints}."

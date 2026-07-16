@@ -48,6 +48,7 @@ def build_retrieval_query(request: ExamGenerationRequest) -> str:
         f"Niveau: {request.study_level}. "
         f"Difficulte: {request.difficulty}. "
         f"Type d'evaluation: {request.evaluation_type}. "
+        f"Type de questions: {request.question_type}. "
         f"Nombre de questions: {request.question_count}. "
         f"Objectifs pedagogiques: {request.learning_objectives}. "
         f"Contraintes: {request.constraints or ''}."
