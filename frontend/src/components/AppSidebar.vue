@@ -41,8 +41,7 @@ const initials = computed(() => {
         <GraduationCap :size="22" />
       </div>
       <div class="brand-copy">
-        <strong>ExamFactory</strong>
-        <span>Agentic RAG</span>
+        <strong>EvalGuard</strong>
       </div>
     </div>
 

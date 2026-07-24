@@ -2,12 +2,16 @@ backend/.venv/
 backend/.env
 __pycache__/
 *.pyc
+*.log
+tmp/
 frontend/.env
 frontend/node_modules/
 frontend/dist/
 backend/data/uploads/*
 backend/data/exams/*
+backend/data/class_resources/*
 backend/data/knowledge_bases.json
 backend/data/last_workflow_result.json
 !backend/data/uploads/.gitkeep
 !backend/data/exams/.gitkeep
+!backend/data/class_resources/.gitkeep

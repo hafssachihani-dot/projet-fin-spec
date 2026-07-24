@@ -1,5 +1,5 @@
 <script setup>
-import { LogOut, Search, UserPlus } from "lucide-vue-next";
+import { LogOut, RefreshCw, Search, UserPlus } from "lucide-vue-next";
 
 defineProps({
   title: {
@@ -22,9 +22,13 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  isRefreshing: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["create-user", "sign-out"]);
+const emit = defineEmits(["create-user", "refresh", "sign-out"]);
 </script>
 
 <template>
@@ -40,6 +44,16 @@ const emit = defineEmits(["create-user", "sign-out"]);
         <input placeholder="Search" />
       </label>
       <span class="user-chip">{{ displayRole }} - {{ displayName }}</span>
+      <button
+        class="icon-button"
+        type="button"
+        title="Actualiser cette page"
+        aria-label="Actualiser cette page"
+        :disabled="isRefreshing"
+        @click="emit('refresh')"
+      >
+        <RefreshCw :size="17" :class="{ 'spin-icon': isRefreshing }" />
+      </button>
       <button
         v-if="isAdmin"
         class="icon-button"

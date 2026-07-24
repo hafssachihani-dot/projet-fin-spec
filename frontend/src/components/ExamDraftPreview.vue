@@ -98,7 +98,7 @@ function examTotal(exam) {
       </button>
       <button class="btn btn-success" type="button" :disabled="isPublishing" @click="emit('publish')">
         <Send :size="18" />
-        <span>{{ isPublishing ? "Publication..." : "Valider et publier" }}</span>
+        <span>{{ isPublishing ? "Envoi..." : "Soumettre a l'administration" }}</span>
       </button>
     </div>
 
